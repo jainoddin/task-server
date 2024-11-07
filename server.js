@@ -17,7 +17,6 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
-app.use(express.static(uploadsDir)); // Serve static files
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
