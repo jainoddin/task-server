@@ -12,14 +12,23 @@ const dotenv = require('dotenv'); //
 dotenv.config(); // Load environment variables
 
 const app = express();
+const allowedOrigins = ['https://task-e3c1a.web.app', 'http://localhost:3000'];
+
 const corsOptions = {
-  origin: 'https://task-e3c1a.web.app', // Your frontend URL
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Allow credentials (e.g., cookies, authorization headers)
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+
 
 app.use(bodyParser.json());
 app.use(morgan('dev')); // Logging middleware
