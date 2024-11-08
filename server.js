@@ -126,27 +126,42 @@ app.route('/api/events')
     }
   });
 
-app.route('/api/events/:eventId')
+  app.route('/api/events/:eventId')
   .put(upload.fields([{ name: 'photos', maxCount: 10 }, { name: 'videos', maxCount: 10 }]), async (req, res) => {
     try {
       const { location, eventName, date } = req.body;
       const photoPaths = req.files['photos'] ? req.files['photos'].map(file => file.path.replace(/\\/g, '/')) : [];
       const videoPaths = req.files['videos'] ? req.files['videos'].map(file => file.path.replace(/\\/g, '/')) : [];
 
-      const updatedEvent = await Event.findByIdAndUpdate(
-        req.params.eventId,
-        { location, eventName, date, $push: { photos: { $each: photoPaths }, videos: { $each: videoPaths } } },
-        { new: true }
-      );
-
-      if (!updatedEvent) {
+      // Find the event by ID and check if it exists
+      const event = await Event.findById(req.params.eventId);
+      if (!event) {
         return res.status(404).json({ message: 'Event not found' });
       }
-      res.status(200).json({ message: 'Event updated successfully', event: updatedEvent });
+
+      // Delete old photo and video files from the filesystem if necessary
+      if (event.photos) {
+        event.photos.forEach(photo => fs.unlinkSync(photo));
+      }
+      if (event.videos) {
+        event.videos.forEach(video => fs.unlinkSync(video));
+      }
+
+      // Update event with new details and replace photos and videos arrays
+      event.location = location || event.location;
+      event.eventName = eventName || event.eventName;
+      event.date = date || event.date;
+      event.photos = photoPaths;
+      event.videos = videoPaths;
+
+      // Save the updated event
+      await event.save();
+      res.status(200).json({ message: 'Event updated successfully', event });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   })
+
   .get(async (req, res) => {
     try {
       const event = await Event.findById(req.params.eventId);
