@@ -28,8 +28,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-
 app.use(bodyParser.json());
 app.use(morgan('dev')); // Logging middleware
 
@@ -45,6 +43,9 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage: storage, limits: { fileSize: 100 * 1024 * 1024 } });
+
+// Serve static files from the "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB connection with pooling options
 mongoose.connect(process.env.MONGO_URI, {
@@ -159,6 +160,7 @@ app.route('/api/events/:eventId')
       const event = await Event.findById(req.params.eventId);
       if (!event) return res.status(404).json({ message: 'Event not found' });
 
+      // Delete old photos and videos if they exist
       if (event.photos) {
         event.photos.forEach(photo => fs.unlink(photo, err => err && console.error(err)));
       }
@@ -216,4 +218,4 @@ app.get('/api/events/user/:userId', async (req, res) => {
 // Start the server
 app.listen(5001, () => {
   console.log('Server running on http://localhost:5001');
-}); 
+});
