@@ -7,7 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const morgan = require('morgan'); // For logging
-const dotenv = require('dotenv'); // For managing environment variables
+const dotenv = require('dotenv'); // 
 
 dotenv.config(); // Load environment variables
 
