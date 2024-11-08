@@ -12,7 +12,15 @@ const dotenv = require('dotenv'); //
 dotenv.config(); // Load environment variables
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: 'https://task-e3c1a.web.app', // Your frontend URL
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Allow credentials (e.g., cookies, authorization headers)
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 app.use(morgan('dev')); // Logging middleware
 
