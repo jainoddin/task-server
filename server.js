@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 const morgan = require('morgan'); // For logging
 const dotenv = require('dotenv'); // 
+const bcrypt = require('bcryptjs');
+
 
 dotenv.config(); // Load environment variables
 
@@ -96,10 +98,22 @@ app.route('/api/users')
     }
   })
   .post(async (req, res) => {
+    const { name, email, password, role } = req.body;
+
     try {
-      const user = new User(req.body);
-      await user.save();
-      res.status(201).json({ message: 'User created', user });
+      // Check if the email is already registered
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email is already registered. Please use a different email.' });
+      }
+
+      // Hash the password before saving it to the database
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create and save the new user
+      const newUser = new User({ name, email, password: hashedPassword, role });
+      await newUser.save();
+      res.status(201).json({ message: 'User created', user: newUser });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
@@ -196,13 +210,26 @@ app.route('/api/events/:eventId')
 // User Login Route
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user || user.password !== password) {
-    return res.status(401).json({ message: 'Invalid email or password' });
+  
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Compare provided password with stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ message: 'Login successful', token, role: user.role });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.json({ message: 'Login successful', token, role: user.role });
 });
+
 
 // Get Events by User ID
 app.get('/api/events/user/:userId', async (req, res) => {
